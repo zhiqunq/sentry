@@ -99,6 +99,9 @@
         <li{% if page == 'client_help_java' %} class="active"{% endif %}>
             <a href="{% url 'sentry-docs-client' project.team.slug project.slug "java" %}">{% trans "Java" %}</a>
         </li>
+        <li{% if page == 'client_help_go' %} class="active"{% endif %}>
+            <a href="{% url 'sentry-docs-client' project.team.slug project.slug "go" %}">{% trans "Go" %}</a>
+        </li>
     </ul>
     {% with project|get_plugins as plugins %}
         <ul class="nav nav-list">

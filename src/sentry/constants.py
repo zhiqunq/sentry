@@ -113,6 +113,7 @@ PLATFORM_LIST = (
     'django',
     'express',
     'flask',
+    'go',
     'ios',
     'java',
     'java_log4j',
