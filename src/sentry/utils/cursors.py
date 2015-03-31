@@ -81,6 +81,10 @@ class CursorResult(Sequence):
 
 
 def build_cursor(results, key, limit=100, cursor=None):
+    """
+    The result set should be pre-sorted and contain result(limit) + next(1) in
+    order to determine next cursors.
+    """
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 
@@ -104,6 +108,7 @@ def build_cursor(results, key, limit=100, cursor=None):
     if is_prev:
         next_value = value
         next_offset = offset
+        # TODO(dcramer): this is incorrect
         has_next = True
     elif num_results:
         if not value:
