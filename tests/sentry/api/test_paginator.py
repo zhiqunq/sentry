@@ -29,21 +29,26 @@ class PaginatorTest(TestCase):
         assert len(result) == 1
         assert result[0].id == self.group1.id
 
+        print(result.next)
         result = paginator.get_result(limit=1, cursor=result.next)
         assert len(result) == 1
         assert result[0].id == self.group2.id
 
+        print(result.next)
         result = paginator.get_result(limit=1, cursor=result.next)
         assert len(result) == 0
 
+        print(result.prev)
         result = paginator.get_result(limit=1, cursor=result.prev)
         assert len(result) == 1
         assert result[0].id == self.group2.id
 
+        print(result.prev)
         result = paginator.get_result(limit=1, cursor=result.prev)
         assert len(result) == 1
         assert result[0].id == self.group1.id
 
+        print(result.prev)
         result = paginator.get_result(limit=1, cursor=result.prev)
         assert len(result) == 0
 
@@ -54,20 +59,25 @@ class PaginatorTest(TestCase):
         assert len(result) == 1
         assert result[0].id == self.group1.id
 
+        print(result.next)
         result = paginator.get_result(limit=1, cursor=result.next)
         assert len(result) == 1
         assert result[0].id == self.group2.id
 
+        print(result.next)
         result = paginator.get_result(limit=1, cursor=result.next)
         assert len(result) == 0
 
+        print(result.prev)
         result = paginator.get_result(limit=1, cursor=result.prev)
         assert len(result) == 1
         assert result[0].id == self.group2.id
 
+        print(result.prev)
         result = paginator.get_result(limit=1, cursor=result.prev)
         assert len(result) == 1
         assert result[0].id == self.group1.id
 
+        print(result.prev)
         result = paginator.get_result(limit=1, cursor=result.prev)
         assert len(result) == 0

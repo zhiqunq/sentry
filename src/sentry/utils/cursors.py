@@ -11,6 +11,32 @@ from collections import Sequence
 
 
 class Cursor(object):
+    """
+    The cursor contains three attributes:
+
+    - The item's value (an item within the set).
+    - The offset of the value. This *always* indicates the position in the stack
+      from left to right in a fixed sort order (the sort order does not change).
+    - An indicator if we're traversing from right to left (this requires more
+      work from the manager of the result set).
+
+    Some example cursors (ignoring the navigational flag):
+
+      [0, 0, 1, 1, 2]
+       ^ 0:0
+
+      [0, 0, 1, 1, 2]
+          ^ 0:1
+
+      [0, 0, 1, 1, 2]
+             ^ 1:0
+
+      [0, 0, 1, 1, 2]
+                ^ 1:1
+
+      [0, 0, 1, 1, 2]
+                   ^ 2:0
+    """
     def __init__(self, value, offset=0, is_prev=False, has_results=None):
         # XXX: ceil is not entirely correct here, but it's a simple hack
         # that solves most problems
@@ -80,39 +106,27 @@ class CursorResult(Sequence):
         )
 
 
-def build_cursor(results, key, limit=100, cursor=None):
+def build_cursor(results, key, limit=100, cursor=None, has_next=None,
+                 has_prev=None):
     """
-    The result set should be pre-sorted and contain result(limit) + next(1) in
-    order to determine next cursors.
+    The result set should **always** be sorted left-to-right (no matter what
+    direction the cursor is sorted).
     """
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 
-    value = cursor.value
-    offset = cursor.offset
     is_prev = cursor.is_prev
 
     num_results = len(results)
 
-    if is_prev:
-        has_prev = num_results > limit
-        num_results = len(results)
-    elif value or offset:
-        # It's likely that there's a previous page if they passed us either offset values
-        has_prev = True
-    else:
-        # we don't know
-        has_prev = False
-
     # Default cursor if not present
     if is_prev:
-        next_value = value
-        next_offset = offset
+        next_value = cursor.value
+        next_offset = cursor.offset
         # TODO(dcramer): this is incorrect
-        has_next = True
+        has_next = num_results > limit
     elif num_results:
-        if not value:
-            value = long(key(results[0]))
+        value = long(key(results[0]))
 
         # Are there more results than whats on the current page?
         has_next = num_results > limit
@@ -121,7 +135,7 @@ def build_cursor(results, key, limit=100, cursor=None):
         next_value = long(key(results[-1]))
 
         if next_value == value:
-            next_offset = offset + limit
+            next_offset = cursor.offset + limit
         else:
             next_offset = 0
             result_iter = reversed(results)
@@ -133,38 +147,46 @@ def build_cursor(results, key, limit=100, cursor=None):
                 else:
                     break
     else:
-        next_value = value
-        next_offset = offset
+        next_value = cursor.value
+        next_offset = cursor.offset
         has_next = False
 
     # Determine what our pervious cursor is by ensuring we have a unique offset
-    if is_prev and num_results:
-        prev_value = long(key(results[0]))
+    if not is_prev:
+        # TODO(dcramer): this is incorrect
+        has_prev = bool(cursor.offset or cursor.value)
+        prev_value = cursor.value
+        prev_offset = cursor.offset
+    elif num_results:
+        # TODO(dcramer): this is incorrect
+        has_prev = True
+        prev_value = long(key(results[-1]))
 
-        if num_results > 2:
-            i = 1
-            while i < num_results and prev_value == long(key(results[i])):
-                i += 1
-            i -= 1
+        if prev_value == cursor.value:
+            prev_offset = cursor.offset + limit
         else:
-            i = 0
-
-        # if we iterated every result and the offset didn't change, we need
-        # to simply add the current offset to our total results (visible)
-        if prev_value == value:
-            prev_offset = offset + i
-        else:
-            prev_offset = i
+            prev_offset = 0
+            result_iter = reversed(results)
+            # skip the last result
+            result_iter.next()
+            for result in result_iter:
+                if long(key(result)) == prev_value:
+                    prev_offset += 1
+                else:
+                    break
     else:
-        # previous cursor is easy if we're paginating forward
-        prev_value = value
-        prev_offset = offset
+        has_prev = False
+        prev_value = cursor.value
+        prev_offset = cursor.offset
 
     # Truncate the list to our original result size now that we've determined the next page
     results = results[:limit]
 
     next_cursor = Cursor(next_value or 0, next_offset, False, has_next)
     prev_cursor = Cursor(prev_value or 0, prev_offset, True, has_prev)
+
+    if cursor.is_prev:
+        results = results[::-1]
 
     return CursorResult(
         results=results,

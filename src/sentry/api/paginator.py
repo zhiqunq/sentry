@@ -19,6 +19,27 @@ quote_name = connections['default'].ops.quote_name
 
 
 class Paginator(object):
+    """
+    The paginator takes a given queryset, with a fixed order, and will generate
+    appropriate cursors as well as take the correct slices.
+
+    Our example queryset's key clause (what is passed in order_by), looks like
+    the following:
+
+      [0, 0, 1, 2, 3, 4]
+
+    Note the duplicate keys, as much of this code exists specifically to handle
+    those.
+
+    When going from left to right queryset's are simply "where KEY >= VALUE",
+    but when we need to go right to left things get more complicated.
+
+    If there is no offset available, the query logic is simply the inverse of
+    the other queryset but exclusive: "where KEY < VALUE".
+
+    When an offset is set (> 0) we need to perform two queries, the first is the
+    same without the offset, and the second is "where KEY >= VALUE limit OFFSET".
+    """
     def __init__(self, queryset, order_by):
         if order_by.startswith('-'):
             self.key, self.desc = order_by[1:], True
@@ -73,22 +94,22 @@ class Paginator(object):
 
             if asc:
                 results = results.extra(
-                    where=['%s >= %%s' % (col_query,)],
+                    where=['%s %s %%s' % (col_query, '>' if is_perv else '=>')],
                     params=col_params,
                 )
             else:
                 results = results.extra(
-                    where=['%s <= %%s' % (col_query,)],
+                    where=['%s <= %%s' % (col_query, '<' if is_perv else '<=')],
                     params=col_params,
                 )
 
         return results
 
     def get_result(self, limit=100, cursor=None):
-        # cursors are:
-        #   (identifier(integer), row offset, is_prev)
+        # - "Next" cursor is inclusive of the first matching result
+        # - "Previous" cursor is exclusive of the first matching result
         if cursor is None:
-            cursor = Cursor(0, 0, 0)
+            cursor = Cursor(0, 0, False)
 
         if cursor.value:
             cursor_value = self._value_from_cursor(cursor)
@@ -97,17 +118,20 @@ class Paginator(object):
 
         queryset = self._get_results_from_qs(cursor_value, cursor.is_prev)
 
-        # this effectively gets us the before post, and the current (after) post
-        # every time
         if cursor.is_prev:
-            stop = cursor.offset + limit + 2
+            # when we are traversing backwards we need to ensure that duplicate
+            # values are handled correctly (i.e. select from offset 0 always with
+            # a +1, and if there are duplicate values, then we need)
+            offset = 0
+            stop = offset + limit + 1 + cursor.offset
         else:
-            stop = cursor.offset + limit + 1
+            offset = cursor.offset
+            stop = offset + limit + 1
 
-        results = list(queryset[cursor.offset:stop])
+        results = list(queryset[offset:stop])
 
         if cursor.is_prev:
-            results = results[1:][::-1]
+            results = results[::-1]
 
         return build_cursor(
             results=results,
