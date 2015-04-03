@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.utils import timezone
 
-from sentry.api.paginator import Paginator
+from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.models import Group
 from sentry.testutils import TestCase
 
@@ -53,7 +53,7 @@ class PaginatorTest(TestCase):
         assert len(result) == 0
 
     def test_duplicate_sort_key(self):
-        paginator = Paginator(self.queryset, order_by='last_seen')
+        paginator = DateTimePaginator(self.queryset, order_by='last_seen')
 
         result = paginator.get_result(limit=1)
         assert len(result) == 1

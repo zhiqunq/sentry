@@ -163,7 +163,7 @@ def build_cursor(results, key, limit=100, cursor=None, has_next=None,
         prev_value = long(key(results[-1]))
 
         if prev_value == cursor.value:
-            prev_offset = cursor.offset + limit
+            prev_offset = cursor.offset - limit
         else:
             prev_offset = 0
             result_iter = reversed(results)

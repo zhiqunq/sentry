@@ -56,7 +56,7 @@ class Paginator(object):
     def _value_from_cursor(self, cursor):
         return cursor.value
 
-    def _get_results_from_qs(self, value, is_prev):
+    def _get_base_queryset(self, value, is_prev):
         results = self.queryset
 
         # "asc" controls whether or not we need to change the ORDER BY to
@@ -94,16 +94,20 @@ class Paginator(object):
 
             if asc:
                 results = results.extra(
-                    where=['%s %s %%s' % (col_query, '>' if is_perv else '=>')],
+                    where=['%s %s %%s' % (col_query, '>' if is_prev else '>=')],
                     params=col_params,
                 )
             else:
                 results = results.extra(
-                    where=['%s <= %%s' % (col_query, '<' if is_perv else '<=')],
+                    where=['%s %s %%s' % (col_query, '<' if is_prev else '<=')],
                     params=col_params,
                 )
 
         return results
+
+    def _get_add_queryset(self, value, offset):
+        queryset = self._get_base_queryset(value, is_prev=False)
+        return queryset[:offset]
 
     def get_result(self, limit=100, cursor=None):
         # - "Next" cursor is inclusive of the first matching result
@@ -116,27 +120,26 @@ class Paginator(object):
         else:
             cursor_value = 0
 
-        queryset = self._get_results_from_qs(cursor_value, cursor.is_prev)
-
         if cursor.is_prev:
-            # when we are traversing backwards we need to ensure that duplicate
-            # values are handled correctly (i.e. select from offset 0 always with
-            # a +1, and if there are duplicate values, then we need)
-            offset = 0
-            stop = offset + limit + 1 + cursor.offset
+            if cursor.offset <= limit:
+                queryset = self._get_base_queryset(cursor_value, cursor.is_prev)
+                results = list(queryset[:limit - cursor.offset + 1])[::-1]
+                results.extend(self._get_add_queryset(cursor_value, cursor.offset))
+            else:
+                queryset = self._get_add_queryset(cursor_value, cursor.offset)
+                results = list(queryset[:limit + 1][::-1])
         else:
-            offset = cursor.offset
-            stop = offset + limit + 1
+            queryset = self._get_base_queryset(cursor_value, cursor.is_prev)
+            results = list(queryset[cursor.offset:cursor.offset + limit + 1])
 
-        results = list(queryset[offset:stop])
-
-        if cursor.is_prev:
-            results = results[::-1]
+        has_next = len(results) > limit
+        results = results[:limit]
 
         return build_cursor(
             results=results,
             limit=limit,
             cursor=cursor,
+            has_next=has_next,
             key=self._get_item_key,
         )
 
