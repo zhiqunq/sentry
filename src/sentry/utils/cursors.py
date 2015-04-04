@@ -53,7 +53,7 @@ class Cursor(object):
             type(self), self.value, self.offset, int(self.is_prev))
 
     def __nonzero__(self):
-        return self.has_results
+        return bool(self.has_results)
 
     @classmethod
     def from_string(cls, value):
@@ -123,13 +123,8 @@ def build_cursor(results, key, limit=100, cursor=None, has_next=None,
     if is_prev:
         next_value = cursor.value
         next_offset = cursor.offset
-        # TODO(dcramer): this is incorrect
-        has_next = num_results > limit
     elif num_results:
         value = long(key(results[0]))
-
-        # Are there more results than whats on the current page?
-        has_next = num_results > limit
 
         # Determine what our next cursor is by ensuring we have a unique offset
         next_value = long(key(results[-1]))
@@ -149,17 +144,12 @@ def build_cursor(results, key, limit=100, cursor=None, has_next=None,
     else:
         next_value = cursor.value
         next_offset = cursor.offset
-        has_next = False
 
     # Determine what our pervious cursor is by ensuring we have a unique offset
     if not is_prev:
-        # TODO(dcramer): this is incorrect
-        has_prev = bool(cursor.offset or cursor.value)
         prev_value = cursor.value
         prev_offset = cursor.offset
     elif num_results:
-        # TODO(dcramer): this is incorrect
-        has_prev = True
         prev_value = long(key(results[-1]))
 
         if prev_value == cursor.value:
@@ -175,7 +165,6 @@ def build_cursor(results, key, limit=100, cursor=None, has_next=None,
                 else:
                     break
     else:
-        has_prev = False
         prev_value = cursor.value
         prev_offset = cursor.offset
 
