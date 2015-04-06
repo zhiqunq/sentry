@@ -117,41 +117,37 @@ def build_cursor(results, key, limit=100, cursor=None, has_next=None,
 
     is_prev = cursor.is_prev
 
-    num_results = len(results)
-
-    # Default cursor if not present
     if is_prev:
+        print('n branch1')
         next_value = cursor.value
         next_offset = cursor.offset
-    elif num_results:
-        value = long(key(results[0]))
-
+    elif results:
+        print('n branch2')
         # Determine what our next cursor is by ensuring we have a unique offset
         next_value = long(key(results[-1]))
 
-        if next_value == value:
+        if next_value == cursor.value:
             next_offset = cursor.offset + limit
         else:
             next_offset = 0
             result_iter = reversed(results)
-            # skip the last result
-            result_iter.next()
             for result in result_iter:
                 if long(key(result)) == next_value:
                     next_offset += 1
                 else:
                     break
     else:
+        print('n branch3')
         next_value = cursor.value
         next_offset = cursor.offset
 
-    # Determine what our pervious cursor is by ensuring we have a unique offset
     if not is_prev:
+        print('p branch1')
         prev_value = cursor.value
         prev_offset = cursor.offset
-    elif num_results:
-        prev_value = long(key(results[-1]))
-
+    elif results:
+        prev_value = long(key(results[0]))
+        print('p branch2')
         if prev_value == cursor.value:
             prev_offset = cursor.offset - limit
         else:
@@ -165,6 +161,7 @@ def build_cursor(results, key, limit=100, cursor=None, has_next=None,
                 else:
                     break
     else:
+        print('p branch3')
         prev_value = cursor.value
         prev_offset = cursor.offset
 
