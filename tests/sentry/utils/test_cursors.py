@@ -63,7 +63,7 @@ def test_build_cursor_unique_values():
     assert cursor.prev.offset == 1
     assert list(cursor) == []
 
-    cursor = build_cursor(results[::-1][0:2], cursor=cursor.prev, **cursor_kwargs)
+    cursor = build_cursor(results[2:4], cursor=cursor.prev, **cursor_kwargs)
     assert isinstance(cursor.next, Cursor)
     # TODO(dcramer): this behavior is currently invalid
     # assert not cursor.next
@@ -74,7 +74,7 @@ def test_build_cursor_unique_values():
     assert cursor.prev.offset == 0
     assert list(cursor) == [event3]
 
-    cursor = build_cursor(results[::-1][1:3], cursor=cursor.prev, **cursor_kwargs)
+    cursor = build_cursor(results[1:3], cursor=cursor.prev, **cursor_kwargs)
     assert isinstance(cursor.next, Cursor)
     assert cursor.next.value == 3
     assert cursor.next.offset == 0
@@ -83,7 +83,7 @@ def test_build_cursor_unique_values():
     assert cursor.prev.offset == 0
     assert list(cursor) == [event2]
 
-    cursor = build_cursor(results[::-1][2:4], cursor=cursor.prev, **cursor_kwargs)
+    cursor = build_cursor(results[0:2], cursor=cursor.prev, **cursor_kwargs)
     assert isinstance(cursor.next, Cursor)
     assert cursor.next.value == 2
     assert cursor.next.offset == 0
@@ -92,13 +92,13 @@ def test_build_cursor_unique_values():
     assert cursor.prev.offset == 0
     assert list(cursor) == [event1]
 
-    cursor = build_cursor(results[::-1][3:5], cursor=cursor.prev, **cursor_kwargs)
+    cursor = build_cursor(results[0:1], cursor=cursor.prev, **cursor_kwargs)
     assert isinstance(cursor.next, Cursor)
     assert cursor.next.value == 1
     assert cursor.next.offset == 0
     assert isinstance(cursor.prev, Cursor)
     assert cursor.prev.value == 1
-    assert cursor.prev.offset == 2
+    assert cursor.prev.offset == 0
     assert list(cursor) == []
 
 
@@ -154,6 +154,7 @@ def test_build_cursor_duplicate_values():
     assert isinstance(cursor.next, Cursor)
     assert cursor.next.value == 2
     assert cursor.next.offset == 1
+    assert isinstance(cursor.prev, Cursor)
     assert cursor.prev.value == 2
     assert cursor.prev.offset == 0
     assert list(cursor) == [event3]
@@ -161,10 +162,10 @@ def test_build_cursor_duplicate_values():
     cursor = build_cursor(results[1:3], cursor=cursor.prev, **cursor_kwargs)
     assert isinstance(cursor.next, Cursor)
     assert cursor.next.value == 2
-    assert cursor.next.offset == 1
+    assert cursor.next.offset == 0
     assert isinstance(cursor.prev, Cursor)
     assert cursor.prev.value == 1
-    assert cursor.prev.offset == 0
+    assert cursor.prev.offset == 1
     assert list(cursor) == [event2]
 
     cursor = build_cursor(results[0:2], cursor=cursor.prev, **cursor_kwargs)
@@ -173,7 +174,7 @@ def test_build_cursor_duplicate_values():
     assert cursor.next.offset == 1
     assert isinstance(cursor.prev, Cursor)
     assert cursor.prev.value == 1
-    assert cursor.prev.offset == 1
+    assert cursor.prev.offset == 0
     assert list(cursor) == [event1]
 
     cursor = build_cursor(results[0:1], cursor=cursor.prev, **cursor_kwargs)
@@ -182,6 +183,5 @@ def test_build_cursor_duplicate_values():
     assert cursor.next.offset == 0
     assert isinstance(cursor.prev, Cursor)
     assert cursor.prev.value == 1
-    assert cursor.prev.offset == 2
+    assert cursor.prev.offset == 0
     assert list(cursor) == []
-
