@@ -424,4 +424,7 @@ urlpatterns += patterns('',
     # Legacy
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.redirect_to_group,
         name='sentry-group'),
+
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/download/$', events.download_event,
+        name='sentry-download'),
 )

@@ -71,6 +71,11 @@
                 {% include "sentry/partial/_event_details.html" %}
             {% endwith %}
         {% endblock %}
+        {% if has_addition %}
+            <div id="addition">
+                <a class="btn btn-default btn-small right" href="{% url 'sentry-download' group.organization.slug group.project.id group.id event.id%}">{% trans "Download" %} <span>{{ addition_name }}</span></a>
+            </div>
+        {% endif %}
     </section>
 {% endblock %}
 

@@ -179,7 +179,15 @@ def render_with_group_context(group, template, context, request=None,
             next_event = None
             prev_event = None
 
+        has_addition = False
+        addition_name = ''
+
         if not is_public:
+            extra_data = event.data.get('extra', {})
+            has_addition = bool(extra_data.get("addition"))
+            if has_addition:
+                extra_data.pop("addition")
+            addition_name = extra_data.get("addition_name", '')
             extra_data = event.data.get('extra', {})
             if not isinstance(extra_data, dict):
                 extra_data = {}
@@ -194,6 +202,8 @@ def render_with_group_context(group, template, context, request=None,
             'version_data': event.data.get('modules', None),
             'next_event': next_event,
             'prev_event': prev_event,
+            'has_addition': has_addition,
+            'addition_name': addition_name,
         })
 
     return render_to_response(template, context, request)

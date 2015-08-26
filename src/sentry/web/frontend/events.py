@@ -12,6 +12,8 @@ import urlparse
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.http import HttpResponse
+from django.http import Http404
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.models import Event
@@ -19,6 +21,28 @@ from sentry.replays import Replayer
 from sentry.utils.http import safe_urlencode
 from sentry.web.decorators import has_group_access, render_to_response
 from sentry.web.forms import ReplayForm
+
+
+@has_group_access
+def download_event(request, organization, project, group, event_id):
+    try:
+        event = Event.objects.get(group=group, id=event_id)
+    except Event.DoesNotExist:
+        raise Http404
+    Event.objects.bind_nodes([event], 'data')
+    data = event.data.get('extra', {}).get("addition")
+    if not data:
+        raise Http404
+    name = event.data.get('extra', {}).get("addition_name", "filename")
+    encoding = event.data.get('extra', {}).get("addition_encode")
+    if encoding:
+        try:
+            data = data.decode(encoding)
+        except:
+            pass
+    response = HttpResponse(data, mimetype='application/octet-stream')
+    response['Content-Disposition'] = 'attachment; filename=%s' % name
+    return response
 
 
 @has_group_access
